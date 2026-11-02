@@ -15,6 +15,13 @@
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
+  <!-- The continuous profiler targets net8.0+: its sample buffer handler uses HttpClient.Send and
+       DateTime.UnixEpoch, and allocation sampling is .NET-only upstream. The distro still loads on
+       .NET Framework; profiling simply does not initialize there. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="Profiler/**/*.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.5" Condition="'$(TargetFramework)' != 'net472'" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" Condition="'$(TargetFramework)' == 'net8.0'" />

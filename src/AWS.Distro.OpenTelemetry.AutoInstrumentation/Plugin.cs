@@ -24,6 +24,7 @@ using AWS.Distro.OpenTelemetry.AutoInstrumentation.Exporter.Otlp.Aws.Logs;
 using AWS.Distro.OpenTelemetry.AutoInstrumentation.Exporter.Otlp.Aws.Metrics;
 using AWS.Distro.OpenTelemetry.AutoInstrumentation.Exporter.Otlp.Aws.Traces;
 using AWS.Distro.OpenTelemetry.AutoInstrumentation.Logging;
+using AWS.Distro.OpenTelemetry.AutoInstrumentation.Profiler;
 #if !NETFRAMEWORK
 using AWS.Distro.OpenTelemetry.DynamicInstrumentation;
 using AWS.Distro.OpenTelemetry.DynamicInstrumentation.Config;
@@ -470,8 +471,27 @@ public class Plugin
     public ResourceBuilder ConfigureResource(ResourceBuilder builder)
     {
         this.ResourceBuilderCustomizer(builder);
+#if !NETFRAMEWORK
+        // Profiles carry the same resource as the rest of the telemetry; service.name is required
+        // by ingest. No-op when profiling is disabled.
+        ContinuousProfiler.CaptureResource(builder);
+#endif
         return builder;
     }
+
+#if !NETFRAMEWORK
+    /// <summary>
+    /// Supplies the continuous profiler configuration. The upstream auto-instrumentation calls
+    /// this by name and leaves the native sampler idle when profiling is disabled, which is the
+    /// default.
+    /// </summary>
+    /// <returns>
+    /// Thread sampling enabled, thread sampling interval in ms, allocation sampling enabled, max
+    /// allocation samples per minute, export interval, export timeout, and the exporter.
+    /// </returns>
+    public Tuple<bool, uint, bool, uint, TimeSpan, TimeSpan, object> GetContinuousProfilerConfiguration()
+        => ContinuousProfiler.GetConfiguration();
+#endif
 
     /// <summary>
     /// To configure HttpOptions and skip instrumentation for certain APIs
